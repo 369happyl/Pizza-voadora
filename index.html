@@ -1,1 +1,224 @@
-429: Too Many Requests
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pizza Survival 2026 - Corrigido</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #87ceeb; font-family: 'Arial', sans-serif; touch-action: manipulation; }
+
+    /* --- JOGADOR --- */
+    #player {
+      width: 55px; height: 55px; background-color: #f5deb0; border-radius: 50%;
+      position: absolute; left: 50px; border: 4px solid #c29b61; z-index: 50;
+    }
+    .calabresa { width: 12px; height: 12px; background: red; border-radius: 50%; position: absolute; border: 1px solid #b30000; }
+    .azeitona { width: 4px; height: 4px; background: #333; border-radius: 50%; position: absolute; }
+    .queijo-p { width: 18px; height: 18px; background: #f1c232; position: absolute; border-radius: 3px; }
+
+    /* --- OBSTÁCULOS --- */
+    .nuvem {
+      width: 80px; height: 45px; background: white; border-radius: 50px;
+      position: absolute; box-shadow: 25px 15px 0 10px white, -15px 10px 0 5px white; z-index: 5;
+    }
+
+    /* Nuvem de Chuva Malvada */
+    .chuva {
+      background: #4a4a4a !important;
+      box-shadow: 25px 15px 0 10px #4a4a4a, -15px 10px 0 5px #4a4a4a !important;
+    }
+    .chuva::before, .chuva::after { content: 'v'; color: red; font-weight: bold; font-size: 14px; position: absolute; top: 15px; }
+    .chuva::before { left: 25px; transform: rotate(-20deg); }
+    .chuva::after { right: -5px; transform: rotate(20deg); }
+    
+    .raio { position: absolute; width: 10px; height: 20px; background: yellow; clip-path: polygon(50% 0%, 0% 60%, 40% 50%, 10% 100%, 100% 40%, 60% 50%); bottom: -30px; left: 30px; }
+
+    .passaro { width: 35px; height: 20px; background: #000; position: absolute; z-index: 15; clip-path: polygon(0% 50%, 40% 0%, 50% 50%, 60% 0%, 100% 50%, 50% 100%); animation: baterAsa 0.2s infinite alternate; }
+
+    .bola { width: 30px; height: 30px; border-radius: 50%; position: absolute; z-index: 60; }
+
+    .aviao {
+      width: 120px; height: 40px; background: white; position: absolute; z-index: 40;
+      border-radius: 20px 50px 20px 20px; border-bottom: 5px solid #ccc;
+    }
+    .aviao::before { content: ''; position: absolute; width: 40px; height: 60px; background: #ddd; top: -10px; left: 40px; clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%); z-index: -1; }
+
+    @keyframes baterAsa { from { transform: scaleY(1.2); } to { transform: scaleY(0.4); } }
+
+    #ui { position: absolute; top: 20px; left: 20px; font-size: 28px; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); z-index: 150; }
+
+    .msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; background: rgba(0,0,0,0.9); padding: 30px; border-radius: 20px; display: none; z-index: 200; }
+    button { padding: 12px 25px; font-size: 18px; cursor: pointer; background: #ff6600; color: white; border: none; border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+  <div id="ui">XP: <span id="xp">0</span> <br> <small id="level-msg" style="color: #ffeb3b;"></small></div>
+
+  <div id="player">
+    <div class="queijo-p" style="top:10px; left:25px;"></div>
+    <div class="queijo-p" style="top:30px; left:10px;"></div>
+    <div class="calabresa" style="top:5px; left:15px;"></div>
+    <div class="calabresa" style="bottom:10px; right:10px;"></div>
+    <div class="azeitona" style="top:25px; left:35px;"></div>
+    <div class="azeitona" style="bottom:15px; left:15px;"></div>
+  </div>
+
+  <div id="game-over" class="msg">
+    <h1 id="death-title">GAME OVER!</h1>
+    <p id="death-msg"></p>
+    <button onclick="location.reload()">RECOMEÇAR</button>
+  </div>
+
+  <script>
+    const player = document.getElementById('player');
+    const xpDisplay = document.getElementById('xp');
+    const levelMsg = document.getElementById('level-msg');
+    const gameOverMsg = document.getElementById('game-over');
+    
+    let playerY = 250;
+    let velocity = 0;
+    let gravity = 0.25;
+    let xp = 0;
+    let isGameOver = false;
+    let obstacles = [];
+    let aviaoPassou = false;
+
+    function jump(e) {
+      if (isGameOver) return;
+      if (e && e.cancelable) e.preventDefault();
+      velocity = -6.5;
+    }
+
+    window.addEventListener('mousedown', jump);
+    window.addEventListener('touchstart', jump, { passive: false });
+
+    function createObstacle() {
+      if (isGameOver) return;
+
+      if (xp >= 400 && !aviaoPassou) {
+        aviaoPassou = true;
+        const av = document.createElement('div');
+        av.className = 'aviao';
+        av.style.left = window.innerWidth + 'px';
+        av.style.top = '100px';
+        av.speed = 12;
+        document.body.appendChild(av);
+        obstacles.push(av);
+        levelMsg.innerText = "CUIDADO: AVIÃO!";
+        return;
+      }
+
+      const obj = document.createElement('div');
+      let type = "nuvem", speed = 3, vy = 0;
+      const rand = Math.random();
+
+      // Define o tipo com base no XP
+      if (xp >= 300) {
+        levelMsg.innerText = "NÍVEL INSANO!";
+        if (rand > 0.5) { type = "bola"; speed = 7 + Math.random() * 5; vy = (Math.random() - 0.5) * 8; }
+        else { type = rand > 0.2 ? "chuva" : "passaro"; speed = type === "chuva" ? 9 : 6; }
+      } else if (xp >= 200) {
+        levelMsg.innerText = "TEMPESTADE!";
+        type = rand > 0.5 ? "chuva" : "passaro";
+        speed = type === "chuva" ? 9 : 6;
+      } else if (xp >= 100) {
+        levelMsg.innerText = "PÁSSAROS!";
+        type = rand > 0.6 ? "passaro" : "nuvem";
+        speed = type === "passaro" ? 6 : 3;
+      }
+
+      // CORREÇÃO DO BUG: Adiciona classes corretamente
+      if (type === "nuvem" || type === "chuva") {
+        obj.classList.add('nuvem');
+        if (type === "chuva") {
+          obj.classList.add('chuva');
+          const raio = document.createElement('div');
+          raio.className = 'raio';
+          obj.appendChild(raio);
+        }
+      } else {
+        obj.classList.add(type);
+      }
+      
+      obj.style.left = window.innerWidth + 'px';
+      obj.style.top = Math.random() * (window.innerHeight - 80) + 'px';
+      obj.speed = speed;
+      obj.vy = vy;
+      
+      document.body.appendChild(obj);
+      obstacles.push(obj);
+    }
+
+    function update() {
+      if (isGameOver) return;
+
+      velocity += gravity;
+      playerY += velocity;
+
+      if (playerY > window.innerHeight - 60) { endGame("CHÃO"); return; }
+      if (playerY < 0) { playerY = 0; velocity = 0; }
+      player.style.top = playerY + 'px';
+
+      obstacles.forEach((ob, index) => {
+        let obX = parseFloat(ob.style.left);
+        let obY = parseFloat(ob.style.top);
+        
+        obX -= ob.speed;
+        if (ob.vy) obY += ob.vy;
+
+        ob.style.left = obX + 'px';
+        ob.style.top = obY + 'px';
+
+        if (obX < 40 && !ob.passed) {
+          xp += 10;
+          xpDisplay.innerText = xp;
+          ob.passed = true;
+        }
+
+        if (obX < -200) {
+          ob.remove();
+          obstacles.splice(index, 1);
+        }
+
+        if (checkCollision(player, ob)) {
+          let causa = ob.classList.contains("aviao") ? "aviao" : 
+                      ob.classList.contains("bola") ? "bola" : 
+                      ob.classList.contains("chuva") ? "chuva" : "nuvem";
+          endGame(causa);
+        }
+      });
+
+      requestAnimationFrame(update);
+    }
+
+    function checkCollision(a, b) {
+      const aRect = a.getBoundingClientRect();
+      const bRect = b.getBoundingClientRect();
+      return !(aRect.top + 15 > bRect.bottom || aRect.bottom - 15 < bRect.top || 
+               aRect.right - 15 < bRect.left || aRect.left + 15 > bRect.right);
+    }
+
+    function endGame(causa) {
+      isGameOver = true;
+      const msg = document.getElementById('death-msg');
+      if (causa === "aviao") msg.innerText = "A turbina do avião sugou a pizza!";
+      else if (causa === "bola") msg.innerText = "Acertou uma bola colorida!";
+      else if (causa === "chuva") msg.innerText = "A Nuvem Malvada te fritou!";
+      else if (causa === "CHÃO") msg.innerText = "Pizza no chão não dá!";
+      else msg.innerText = "Fim da linha!";
+      gameOverMsg.style.display = 'block';
+    }
+
+    function spawner() {
+      if (isGameOver) return;
+      createObstacle();
+      let timer = xp >= 300 ? 600 : (xp >= 200 ? 900 : 1500);
+      setTimeout(spawner, timer);
+    }
+
+    spawner();
+    update();
+  </script>
+</body>
+</html>
