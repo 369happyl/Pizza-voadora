@@ -34,8 +34,16 @@
     .raio { position: absolute; width: 10px; height: 20px; background: yellow; clip-path: polygon(50% 0%, 0% 60%, 40% 50%, 10% 100%, 100% 40%, 60% 50%); bottom: -30px; left: 30px; }
 
     .passaro { width: 35px; height: 20px; background: #000; position: absolute; z-index: 15; clip-path: polygon(0% 50%, 40% 0%, 50% 50%, 60% 0%, 100% 50%, 50% 100%); animation: baterAsa 0.2s infinite alternate; }
-
-    .bola { width: 30px; height: 30px; border-radius: 50%; position: absolute; z-index: 60; }
+    .bola { 
+  width: 30px; 
+  height: 30px; 
+  border-radius: 50%; 
+  position: absolute; 
+  z-index: 60; 
+  /* Adicione as linhas abaixo */
+  background: radial-gradient(circle at 10px 10px, #ff00ff, #550055);
+  box-shadow: 0 0 10px rgba(255,0,255,0.8);
+}
 
     .aviao {
       width: 120px; height: 40px; background: white; position: absolute; z-index: 40;
