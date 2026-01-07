@@ -84,12 +84,21 @@
 
     function jump(e) {
       if (isGameOver) return;
+      // Impede o scroll da página se for espaço ou touch
       if (e && e.cancelable) e.preventDefault();
       velocity = -6.5;
     }
 
+    // Eventos de clique e touch que você já tinha
     window.addEventListener('mousedown', jump);
     window.addEventListener('touchstart', jump, { passive: false });
+
+    // ADICIONADO: Evento para a tecla Espaço
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        jump(e);
+      }
+    });
 
     function createObstacle() {
       if (isGameOver) return;
@@ -134,7 +143,7 @@
       obj.classList.add(type);
       if (type === "nuvem" || type === "chuva") {
         obj.classList.add('nuvem');
-        if (type === "chuva") {
+if (type === "chuva") {
           const raio = document.createElement('div');
           raio.className = 'raio';
           obj.appendChild(raio);
@@ -222,4 +231,3 @@
   </script>
 </body>
 </html>
- 
